@@ -1,0 +1,57 @@
+# This GitHub Actions workflow is designed to run an existing Databricks job called "SAT Initializer Notebook (one-time)".
+# It uses the Databricks CLI to trigger the job and can be manually triggered via GitHub Actions.
+# The job is expected to be set up the necessary workspace and data for the SAT.
+name: Run SAT Initializer
+
+on:
+  # TODO: Déterminer un événement approprié pour déclencher ce workflow.
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  run_existing_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@v0.2.0
+        with:
+          databricks-host: ${{ secrets.DATABRICKS_SAT_HOST }}
+          # For Service Principal authentication, use:
+          databricks-client-id: ${{ secrets.DATABRICKS_SAT_CLIENT_ID }}
+          databricks-client-secret: ${{ secrets.DATABRICKS_SAT_CLIENT_SECRET }}
+
+      - name: Get Job ID by Name (Optional, if you only have the name)
+        id: get_job_id
+        run: |
+          JOB_NAME="SAT Initializer Notebook (one-time)" # Replace with your actual job name
+          echo "Searching for Job with name: $JOB_NAME"
+          JOB_ID=$(databricks jobs list --output json | jq -r --arg job_name "$JOB_NAME" '.jobs[] | select(.settings.name == $job_name) | .job_id')
+          if [ -z "$JOB_ID" ]; then
+            echo "Error: Job with name '$JOB_NAME' not found."
+            exit 1
+          fi
+          echo "Found Job ID: $JOB_ID"
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Run Existing Databricks Job
+        # Use job_id from the previous step, or directly use the ID if known
+        run: |
+          DATABRICKS_JOB_ID=${{ steps.get_job_id.outputs.job_id }} # Using ID obtained by name
+          # Or if you know the ID directly: DATABRICKS_JOB_ID="1234567890123456" # Replace with your Job ID
+
+          echo "Triggering Databricks Job ID: $DATABRICKS_JOB_ID"
+          # The 'databricks jobs run now' command will wait for the job to complete
+          # and exit with a non-zero code if the job fails, failing the GitHub Action.
+          databricks jobs run now --job-id $DATABRICKS_JOB_ID --json > job_run_details.json
+          cat job_run_details.json
+
+          # You can optionally extract the run_id and use it for further monitoring/details
+          RUN_ID=$(jq -r '.run_id' job_run_details.json)
+          echo "Databricks Job Run ID: $RUN_ID"
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+        # If you need to pass parameters to the job run:
+        # --json '{"notebook_params": {"param1": "value1", "param2": "value2"}}'
+        # --json '{"pipeline_params": {"refresh": true}}' # For DLT pipeline jobs
