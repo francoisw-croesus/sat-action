@@ -3,6 +3,11 @@
 # The job is expected to be set up the necessary workspace and data for the SAT.
 name: Run SAT Initializer
 
+# To allow this workflow to trigger another workflow.
+permissions:
+  actions: write
+  contents: read
+
 on:
   # TODO: Déterminer un événement approprié pour déclencher ce workflow.
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -39,7 +44,7 @@ jobs:
           echo "Found Job ID: $JOB_ID"
           echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
 
-      - name: Run Existing Databricks Job
+      - name: Run SAT Initializer Databricks Job
         # Use job_id from the previous step, or directly use the ID if known
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_SAT_HOST }}
@@ -59,6 +64,17 @@ jobs:
           echo "Databricks Job Run ID: $RUN_ID"
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
-        # If you need to pass parameters to the job run:
-        # --json '{"notebook_params": {"param1": "value1", "param2": "value2"}}'
-        # --json '{"pipeline_params": {"refresh": true}}' # For DLT pipeline jobs
+      - name: Trigger Driver Workflow
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'run-sat-driver.yml',
+              ref: context.ref,
+              inputs: {
+                initializer_run_id: '${{ steps.run_job.outputs.run_id }}'
+              }
+            });

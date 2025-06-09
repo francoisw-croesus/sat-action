@@ -1,0 +1,49 @@
+# This GitHub Actions workflow is designed to run an existing Databricks job called "SAT Initializer Notebook (one-time)".
+# It uses the Databricks CLI to trigger the job and can be manually triggered via GitHub Actions.
+# The job is expected to produce an analysis of the workspaces and data using the SAT.
+name: Run SAT Driver
+
+on:
+  workflow_dispatch:
+    # Permet un déclenchement manuel ou depuis un autre workflow
+    inputs:
+      initializer_run_id:
+        description: 'ID de l'exécution du job initializer'
+        required: false
+        type: string
+
+jobs:
+  run_driver_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Get Driver Job ID
+        id: get_driver_job_id
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_SAT_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_SAT_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_SAT_CLIENT_SECRET }}
+        run: |
+          JOB_NAME="SAT Driver Notebook"
+          echo "Searching for Job with name: $JOB_NAME"
+          JOB_ID=$(databricks jobs list --output json | jq -r --arg job_name "$JOB_NAME" '.[] | select(.settings.name == $job_name) | .job_id')
+          if [ -z "$JOB_ID" ]; then
+            echo "Error: Job with name '$JOB_NAME' not found."
+            exit 1
+          fi
+          echo "Found Driver Job ID: $JOB_ID"
+          echo "driver_job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Run Driver Job
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_SAT_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_SAT_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_SAT_CLIENT_SECRET }}
+        run: |
+          databricks jobs run-now ${{ steps.get_driver_job_id.outputs.driver_job_id }} --output json > job_run_details.json
+          cat job_run_details.json
