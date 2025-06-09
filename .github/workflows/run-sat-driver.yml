@@ -7,10 +7,7 @@ on:
   workflow_dispatch:
     # Permet un déclenchement manuel ou depuis un autre workflow
     inputs:
-      initializer_run_id:
-        description: 'ID de l'exécution du job initializer'
-        required: false
-        type: string
+      initializer_run_id: '${{ steps.Run_SAT_Initializer_Databricks_Job.outputs.run_id }}'
 
 jobs:
   run_driver_job:
