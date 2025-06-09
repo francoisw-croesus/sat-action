@@ -7,7 +7,10 @@ on:
   workflow_dispatch:
     # Permet un déclenchement manuel ou depuis un autre workflow
     inputs:
-      initializer_run_id: '${{ steps.Run_SAT_Initializer_Databricks_Job.outputs.run_id }}'
+      initializer_run_id:
+        description: 'ID du job GH action SAT initializer'
+        required: false
+        type: string
 
 jobs:
   run_driver_job:
