@@ -24,6 +24,10 @@ jobs:
 
       - name: Get Job ID by Name (Optional, if you only have the name)
         id: get_job_id
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_SAT_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_SAT_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_SAT_CLIENT_SECRET }}
         run: |
           JOB_NAME="SAT Initializer Notebook (one-time)" # Replace with your actual job name
           echo "Searching for Job with name: $JOB_NAME"
@@ -37,6 +41,10 @@ jobs:
 
       - name: Run Existing Databricks Job
         # Use job_id from the previous step, or directly use the ID if known
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_SAT_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_SAT_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_SAT_CLIENT_SECRET }}
         run: |
           DATABRICKS_JOB_ID=${{ steps.get_job_id.outputs.job_id }} # Using ID obtained by name
           # Or if you know the ID directly: DATABRICKS_JOB_ID="1234567890123456" # Replace with your Job ID
