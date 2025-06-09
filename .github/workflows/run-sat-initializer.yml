@@ -51,7 +51,7 @@ jobs:
           echo "Triggering Databricks Job ID: $DATABRICKS_JOB_ID"
           # The 'databricks jobs run now' command will wait for the job to complete
           # and exit with a non-zero code if the job fails, failing the GitHub Action.
-          databricks jobs run-now --job-id $DATABRICKS_JOB_ID --output json > job_run_details.json
+          databricks jobs run-now $DATABRICKS_JOB_ID --output json > job_run_details.json
           cat job_run_details.json
 
           # You can optionally extract the run_id and use it for further monitoring/details
