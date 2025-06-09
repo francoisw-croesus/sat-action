@@ -31,7 +31,7 @@ jobs:
         run: |
           JOB_NAME="SAT Initializer Notebook (one-time)" # Replace with your actual job name
           echo "Searching for Job with name: $JOB_NAME"
-          JOB_ID=$(databricks jobs list --output json | jq -r --arg job_name "$JOB_NAME" '.jobs[] | select(.settings.name == $job_name) | .job_id')
+          JOB_ID=$(databricks jobs list --output json | jq -r --arg job_name "$JOB_NAME" '.[] | select(.settings.name == $job_name) | .job_id')
           if [ -z "$JOB_ID" ]; then
             echo "Error: Job with name '$JOB_NAME' not found."
             exit 1
